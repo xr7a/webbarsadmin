@@ -30,8 +30,6 @@ const stageDefinitions = [
   { stage: 'delivery', label: 'Отправка ответа', color: '#64838c' },
 ] as const
 
-export const demoRequestCost = 0.84
-
 export function summarizeTechnicalAnalytics(data: TechnicalAnalytics) {
   const input = data.tokens.chat.input
   const output = data.tokens.chat.output

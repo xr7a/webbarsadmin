@@ -20,3 +20,7 @@ export async function loadAnalyticsDocuments(signal: AbortSignal): Promise<Analy
 export function loadTechnicalAnalytics(range: TechnicalRange, signal: AbortSignal) {
   return request<TechnicalAnalytics>('/analytics/technical?' + new URLSearchParams({ range }), { signal })
 }
+
+export function loadRequestCost({ from_at, to_at }: Pick<TechnicalAnalytics, 'from_at' | 'to_at'>, signal: AbortSignal) {
+  return request<{ mean: number | null }>('/analytics/request-cost?' + new URLSearchParams({ from_at, to_at }), { signal })
+}

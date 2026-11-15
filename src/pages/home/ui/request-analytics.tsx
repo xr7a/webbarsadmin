@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { loadTechnicalAnalytics } from '../model/api'
-import { demoRequestCost, formatMetric, formatMilliseconds, summarizeTechnicalAnalytics } from '../model/technical-analytics'
+import { loadRequestCost, loadTechnicalAnalytics } from '../model/api'
+import { formatMetric, formatMilliseconds, summarizeTechnicalAnalytics } from '../model/technical-analytics'
 import type { TechnicalAnalytics, TechnicalRange } from '../model/technical-analytics'
 import styles from './home-page.module.css'
 
-type LoadState = { status: 'loading' } | { status: 'error' } | { status: 'ready'; data: TechnicalAnalytics }
+type LoadState = { status: 'loading' } | { status: 'error' } | { status: 'ready'; data: TechnicalAnalytics; requestCost: number | null }
 
 export function RequestAnalytics({ range }: { range: TechnicalRange }) {
   const [state, setState] = useState<LoadState>({ status: 'loading' })
@@ -12,8 +12,9 @@ export function RequestAnalytics({ range }: { range: TechnicalRange }) {
 
   useEffect(() => {
     const controller = new AbortController()
-    loadTechnicalAnalytics(range, controller.signal).then((data) => {
-      if (!controller.signal.aborted) setState({ status: 'ready', data })
+    loadTechnicalAnalytics(range, controller.signal).then(async (data) => {
+      const cost = await loadRequestCost(data, controller.signal).catch(() => null)
+      if (!controller.signal.aborted) setState({ status: 'ready', data, requestCost: cost?.mean ?? null })
     }).catch(() => {
       if (!controller.signal.aborted) setState({ status: 'error' })
     })
@@ -34,7 +35,7 @@ export function RequestAnalytics({ range }: { range: TechnicalRange }) {
   const metrics = [
     { label: 'Токены на обращение', value: formatMetric(summary.tokensPerResponse), unit: 'токенов', description: 'Токены чата / число замеров ответа: ' + formatMetric(summary.samples) },
     { label: 'Среднее время ответа', value: responseTime, unit: 'с', description: '95% ответов — до ' + formatMilliseconds(data.response_time.p95_ms) + ' с' },
-    { label: 'Стоимость обращения', value: formatMetric(demoRequestCost, 2), unit: '₽', description: 'Демонстрационное значение' },
+    { label: 'Стоимость обращения', value: formatMetric(state.requestCost, 2), unit: '₽' },
   ]
 
   return (
@@ -43,7 +44,7 @@ export function RequestAnalytics({ range }: { range: TechnicalRange }) {
         {metrics.map((metric) => (
           <div key={metric.label}>
             <dt>{metric.label}</dt>
-            <dd><span className={styles.overviewValue}>{metric.value}<small>{metric.unit}</small></span><span className={styles.metricHint}>{metric.description}</span></dd>
+            <dd><span className={styles.overviewValue}>{metric.value}<small>{metric.unit}</small></span>{metric.description && <span className={styles.metricHint}>{metric.description}</span>}</dd>
           </div>
         ))}
       </dl>
